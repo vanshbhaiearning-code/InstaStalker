@@ -130,19 +130,35 @@ bot.on("message", (msg) => {
   setTimeout(() => bot.sendMessage(id, "📊 Analyzing..."), 1500);
   setTimeout(() => bot.sendMessage(id, "👀 Finding viewers..."), 3000);
 
-  setTimeout(() => {
-    let link = `https://t.me/${config.BOT_USERNAME}?start=${id}`;
+setTimeout(() => {
+  let link = `https://t.me/${config.BOT_USERNAME}?start=${id}`;
 
-    bot.sendMessage(id,
+  bot.sendMessage(id,
 `🔥 1 Secret Admirer  
 👀 2 Hidden Stalkers  
 
-Invite 3 friends to unlock 👇
+🔒 Unlock by inviting 3 friends 👇
 
-${progress(user.invites)} (${user.invites}/3)
-
-${link}`);
-  }, 4500);
+${progress(user.invites)} (${user.invites}/3)`,
+{
+  reply_markup: {
+    inline_keyboard: [
+      [
+        {
+          text: "📤 Share Link",
+          url: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=😳 Check who viewed your profile!`
+        }
+      ],
+      [
+        {
+          text: "📲 Share on WhatsApp",
+          url: `https://wa.me/?text=${encodeURIComponent("😳 Check who viewed your profile! " + link)}`
+        }
+      ]
+    ]
+  }
+});
+}, 4500);
 });
 
 // UNLOCK
