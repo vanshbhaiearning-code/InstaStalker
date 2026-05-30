@@ -1,10 +1,22 @@
 const TelegramBot = require("node-telegram-bot-api");
 const fs = require("fs-extra");
+const express = require("express");
 const config = require("./config");
+
+if (!config.TOKEN) {
+  console.log("❌ TOKEN missing");
+  process.exit(1);
+}
 
 const bot = new TelegramBot(config.TOKEN, { polling: true });
 
-let users = fs.readJsonSync("users.json");
+// ================= USERS =================
+let users = {};
+try {
+  users = fs.readJsonSync("users.json");
+} catch {
+  users = {};
+}
 
 // SAVE
 function save() {
@@ -17,28 +29,22 @@ function randomUser() {
   return `@${names[Math.floor(Math.random()*names.length)]}_${Math.floor(Math.random()*999)}`;
 }
 
-// PROGRESS BAR
+// PROGRESS
 function progress(count) {
   return "█".repeat(count) + "░".repeat(3 - count);
 }
 
-// AI REPLY SYSTEM
+// AI REPLY
 function aiReply(text) {
   text = text.toLowerCase();
 
   if (text.includes("hi") || text.includes("hello"))
-    return "👋 Hey! Ready to see who is secretly checking your profile? 😏";
+    return "👋 Hey! Ready to see who is checking your profile? 😏";
 
   if (text.includes("fake"))
-    return "😏 Sab log pehle aisa hi bolte hain... try karke dekho";
+    return "😏 Try karke dekho bro";
 
-  if (text.includes("kaise ho"))
-    return "🔥 Full active hoon! Tum batao, kisi ne profile check ki kya? 👀";
-
-  if (text.includes("love") || text.includes("crush"))
-    return "❤️ Lagta hai koi special hai... check karna chahoge? 😳";
-
-  return "😏 Interesting... but pehle apna profile scan karo 👇";
+  return "😏 Interesting... pehle username bhejo 👇";
 }
 
 // JOIN CHECK
@@ -57,11 +63,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
   let ref = match[1].trim();
 
   if (!users[id]) {
-    users[id] = {
-      invites: 0,
-      verified: false,
-      lastUsed: 0
-    };
+    users[id] = { invites: 0, verified: false, lastUsed: 0 };
 
     if (ref && users[ref] && ref != id) {
       users[ref].invites++;
@@ -83,10 +85,7 @@ ${config.CHANNEL}`, {
   users[id].verified = true;
   save();
 
-  bot.sendMessage(id,
-`😳 Someone checked your profile!
-
-Enter your username 👇`);
+  bot.sendMessage(id, "😳 Someone checked your profile!\n\nUsername bhejo 👇");
 });
 
 // BUTTON
@@ -97,52 +96,48 @@ bot.on("callback_query", async (q) => {
     if (await isJoined(id)) {
       users[id].verified = true;
       save();
-      bot.sendMessage(id, "✅ Verified!\nSend username 👇");
+      bot.sendMessage(id, "✅ Verified! Username bhejo 👇");
     } else {
       bot.answerCallbackQuery(q.id, { text: "❌ Join first", show_alert: true });
     }
   }
 });
 
-// MAIN MESSAGE HANDLER
+// MESSAGE
 bot.on("message", (msg) => {
   let id = msg.chat.id;
   let text = msg.text;
 
+  if (!text) return;
   if (!users[id] || !users[id].verified) return;
   if (text.startsWith("/")) return;
 
   let user = users[id];
 
-  // AI CHAT
   if (!text.startsWith("@")) {
     return bot.sendMessage(id, aiReply(text));
   }
 
-  // DAILY LIMIT
   let now = Date.now();
   if (now - user.lastUsed < 86400000) {
-    return bot.sendMessage(id, "⏳ Kal fir try karo");
+    return bot.sendMessage(id, "⏳ Kal try karo");
   }
 
   user.lastUsed = now;
   save();
 
-  bot.sendMessage(id, "🔍 Scanning profile...");
-  setTimeout(() => bot.sendMessage(id, "📊 Analyzing data..."), 1500);
-  setTimeout(() => bot.sendMessage(id, "👀 Finding hidden viewers..."), 3000);
+  bot.sendMessage(id, "🔍 Scanning...");
+  setTimeout(() => bot.sendMessage(id, "📊 Analyzing..."), 1500);
+  setTimeout(() => bot.sendMessage(id, "👀 Finding viewers..."), 3000);
 
   setTimeout(() => {
+    let link = `https://t.me/${config.BOT_USERNAME}?start=${id}`;
+
     bot.sendMessage(id,
 `🔥 1 Secret Admirer  
 👀 2 Hidden Stalkers  
 
-🔒 Unlock names 👇`);
-
-    let link = `https://t.me/${config.BOT_USERNAME}?start=${id}`;
-
-    bot.sendMessage(id,
-`Invite 3 friends:
+Invite 3 friends to unlock 👇
 
 ${progress(user.invites)} (${user.invites}/3)
 
@@ -168,36 +163,7 @@ setInterval(() => {
   }
 }, 5000);
 
-// REMINDER
-setInterval(() => {
-  for (let id in users) {
-    if (!users[id].done && users[id].invites > 0) {
-      bot.sendMessage(id, "⏳ Complete invites to unlock results!");
-    }
-  }
-}, 600000);
-
-// ADMIN
-bot.onText(/\/stats/, (msg) => {
-  if (msg.chat.id != config.ADMIN) return;
-
-  bot.sendMessage(msg.chat.id,
-`👥 Users: ${Object.keys(users).length}`);
-});
-const TelegramBot = require("node-telegram-bot-api");
-const bot = new TelegramBot(process.env.TOKEN, { polling: true });
-
-// 👇 Tera existing bot code
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Bot working 🚀");
-});
-
-
-// ==========================
-// 🔥 YE CODE Niche Add Karna
-// ==========================
-
-const express = require("express");
+// ================= EXPRESS (Render fix) =================
 const app = express();
 
 app.get("/", (req, res) => {
