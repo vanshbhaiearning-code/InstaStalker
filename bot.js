@@ -184,3 +184,28 @@ bot.onText(/\/stats/, (msg) => {
   bot.sendMessage(msg.chat.id,
 `👥 Users: ${Object.keys(users).length}`);
 });
+const TelegramBot = require("node-telegram-bot-api");
+const bot = new TelegramBot(process.env.TOKEN, { polling: true });
+
+// 👇 Tera existing bot code
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, "Bot working 🚀");
+});
+
+
+// ==========================
+// 🔥 YE CODE Niche Add Karna
+// ==========================
+
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Bot is running 🚀");
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
