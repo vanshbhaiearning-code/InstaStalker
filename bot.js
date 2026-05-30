@@ -165,7 +165,19 @@ ${progress(user.invites)} (${user.invites}/3)`,
 setInterval(() => {
   for (let id in users) {
     if (users[id].invites >= 3 && !users[id].done) {
-      users[id].done = true;
+  users[id].done = true;
+
+  bot.sendMessage(id,
+`🎉 CONGRATS! UNLOCKED 🔥
+
+❤️ ${randomUser()}
+👀 ${randomUser()}
+👀 ${randomUser()}
+
+😏 More results tomorrow!`);
+
+  save();
+    }
 
       bot.sendMessage(id,
 `🎉 UNLOCKED!
