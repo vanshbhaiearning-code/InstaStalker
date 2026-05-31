@@ -25,7 +25,7 @@ new Telegraf(
 process.env.BOT_TOKEN
 );
 
-connectDB();
+// connectDB();
 
 bot.start(async (ctx) => {
 
