@@ -1,92 +1,141 @@
 require("dotenv").config();
 
 const { Telegraf } = require("telegraf");
-const mongoose = require("mongoose");
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const connectDB =
+require("./config/db");
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("Mongo Connected"))
-.catch(console.error);
+const User =
+require("./models/User");
+
+const forceJoin =
+require("./keyboards/forceJoin");
+
+const mainMenu =
+require("./keyboards/mainMenu");
+
+const checkJoin =
+require("./utils/checkJoin");
+
+const askAI =
+require("./services/openrouter");
+
+const bot =
+new Telegraf(
+process.env.BOT_TOKEN
+);
+
+connectDB();
 
 bot.start(async (ctx) => {
 
-const keyboard = {
-reply_markup: {
-inline_keyboard: [
-[
-{ text: "🚀 Instagram Toolkit", callback_data: "toolkit" }
-],
-[
-{ text: "🤖 AI Tools", callback_data: "ai" }
-],
-[
-{ text: "👤 Profile", callback_data: "profile" }
-],
-[
-{ text: "⭐ Premium", callback_data: "premium" }
-]
-]
+let user =
+await User.findOne({
+userId: ctx.from.id
+});
+
+if (!user) {
+
+await User.create({
+userId: ctx.from.id,
+username: ctx.from.username,
+firstName: ctx.from.first_name
+});
+
 }
-};
+
+const joined =
+await checkJoin(ctx);
+
+if (!joined) {
+
+return ctx.reply(
+"🔒 Please Join Channel First",
+forceJoin
+);
+
+}
 
 ctx.reply(
-`🔥 Welcome ${ctx.from.first_name}
-
-Instagram Toolkit + AI Bot`,
-keyboard
+`🚀 Welcome ${ctx.from.first_name}`,
+mainMenu
 );
 
 });
 
-bot.action("toolkit", async (ctx) => {
+bot.action(
+"verify",
+async (ctx) => {
 
-ctx.editMessageText(
-`🚀 Instagram Toolkit
+const joined =
+await checkJoin(ctx);
 
-📥 Reel Downloader
-📸 Story Downloader
-🖼 DP Downloader
-📝 Caption Generator
-#️⃣ Hashtag Generator`
+if (!joined) {
+
+return ctx.answerCbQuery(
+"❌ Join Channel First"
 );
 
-});
-
-bot.action("ai", async (ctx) => {
+}
 
 ctx.editMessageText(
-`🤖 AI Tools
-
-✨ Viral Caption AI
-🔥 Reel Idea AI
-👤 Bio AI
-📅 Content Planner`
+`🚀 Welcome ${ctx.from.first_name}`,
+mainMenu
 );
 
+}
+);
+
+bot.action(
+"profile",
+async (ctx) => {
+
+const user =
+await User.findOne({
+userId: ctx.from.id
 });
 
-bot.action("profile", async (ctx) => {
-
-ctx.editMessageText(
+ctx.reply(
 `👤 Profile
 
-ID: ${ctx.from.id}
-Name: ${ctx.from.first_name}`
+ID: ${user.userId}
+
+Premium:
+${user.premium ? "Yes" : "No"}
+
+Referrals:
+${user.referrals}`
 );
 
-});
-
-bot.action("premium", async (ctx) => {
-
-ctx.editMessageText(
-`⭐ Premium Plans
-
-Unlimited AI
-Unlimited Downloads
-Premium Features`
+}
 );
 
-});
+bot.action(
+"caption_ai",
+async (ctx) => {
+
+ctx.reply(
+"Send reel topic"
+);
+
+bot.once(
+"message",
+async (msgCtx) => {
+
+const text =
+msgCtx.message.text;
+
+const result =
+await askAI(
+`Create viral instagram caption for ${text}`
+);
+
+msgCtx.reply(result);
+
+}
+);
+
+}
+);
 
 bot.launch();
