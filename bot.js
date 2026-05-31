@@ -59,25 +59,63 @@ async function isJoined(id) {
 
 // START
 bot.onText(/\/start(.*)/, async (msg, match) => {
-  let id = msg.chat.id;
-  let ref = match[1].trim();
+  let id = String(msg.chat.id); // 🔥 string me convert (important)
+  let ref = match[1] ? match[1].trim() : null;
 
+  // agar pehli baar user aa raha hai
   if (!users[id]) {
-    users[id] = { invites: 0, verified: false, lastUsed: 0 };
+    users[id] = {
+      invites: 0,
+      referredBy: null,
+      verified: false,
+      lastUsed: 0,
+      done: false
+    };
 
-    if (ref && users[ref] && ref != id) {
-      users[ref].invites++;
+    // ✅ REFERRAL LOGIC
+    if (ref && ref !== id && users[ref]) {
+
+      // 🔥 duplicate refer block
+      if (!users[id].referredBy) {
+
+        users[id].referredBy = ref;
+
+        users[ref].invites += 1;
+
+        // 🎉 referrer ko notify
+        bot.sendMessage(ref,
+`🎉 New user joined from your link!
+
+🔥 Total invites: ${users[ref].invites}/3`);
+
+        // 🔥 INSTANT UNLOCK
+        if (users[ref].invites >= 3 && !users[ref].done) {
+          users[ref].done = true;
+
+          bot.sendMessage(ref,
+`🎉 CONGRATS! UNLOCKED 🔥
+
+❤️ ${randomUser()}
+👀 ${randomUser()}
+👀 ${randomUser()}`);
+        }
+
+        save();
+      }
     }
 
     save();
   }
 
+  // ================= JOIN CHECK =================
   if (!(await isJoined(id))) {
     return bot.sendMessage(id,
 `🚫 Channel join karo first 👇
 ${config.CHANNEL}`, {
       reply_markup: {
-        inline_keyboard: [[{ text: "✅ Joined", callback_data: "join" }]]
+        inline_keyboard: [[
+          { text: "✅ Joined", callback_data: "join" }
+        ]]
       }
     });
   }
@@ -85,7 +123,10 @@ ${config.CHANNEL}`, {
   users[id].verified = true;
   save();
 
-  bot.sendMessage(id, "😳 Someone checked your profile!\n\nUsername bhejo 👇");
+  bot.sendMessage(id,
+`😳 Someone checked your profile!
+
+Username bhejo 👇`);
 });
 
 // BUTTON
