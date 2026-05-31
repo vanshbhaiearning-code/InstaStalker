@@ -1,164 +1,92 @@
-const TelegramBot = require("node-telegram-bot-api");
-const fs = require("fs-extra");
-const express = require("express");
-const config = require("./config");
+require("dotenv").config();
 
-const bot = new TelegramBot(config.TOKEN, { polling: true });
+const { Telegraf } = require("telegraf");
+const mongoose = require("mongoose");
 
-// ================= USERS =================
-let users = {};
-try {
-  users = fs.readJsonSync("users.json");
-} catch {
-  users = {};
+const bot = new Telegraf(process.env.BOT_TOKEN);
+
+mongoose.connect(process.env.MONGO_URI)
+.then(() => console.log("Mongo Connected"))
+.catch(console.error);
+
+bot.start(async (ctx) => {
+
+const keyboard = {
+reply_markup: {
+inline_keyboard: [
+[
+{ text: "🚀 Instagram Toolkit", callback_data: "toolkit" }
+],
+[
+{ text: "🤖 AI Tools", callback_data: "ai" }
+],
+[
+{ text: "👤 Profile", callback_data: "profile" }
+],
+[
+{ text: "⭐ Premium", callback_data: "premium" }
+]
+]
 }
+};
 
-function save() {
-  fs.writeJsonSync("users.json", users, { spaces: 2 });
-}
+ctx.reply(
+`🔥 Welcome ${ctx.from.first_name}
 
-// ================= JOIN CHECK =================
-async function isJoined(id) {
-  try {
-    let res = await bot.getChatMember(config.CHANNEL, id);
-    return ["member", "administrator", "creator"].includes(res.status);
-  } catch {
-    return false;
-  }
-}
+Instagram Toolkit + AI Bot`,
+keyboard
+);
 
-// ================= START =================
-bot.onText(/\/start(.*)/, async (msg, match) => {
-  let id = String(msg.chat.id);
-  let ref = match[1] ? match[1].trim() : null;
-
-  // USER CREATE
-  if (!users[id]) {
-    users[id] = {
-      invites: 0,
-      referredBy: null,
-      verified: false,
-      done: false
-    };
-
-    // ===== REFERRAL =====
-    if (ref && ref !== id && users[ref]) {
-      if (!users[id].referredBy) {
-        users[id].referredBy = ref;
-
-        users[ref].invites++;
-
-        bot.sendMessage(ref,
-`🎉 New Referral Joined!
-
-🔥 Total: ${users[ref].invites}/3`);
-
-        // UNLOCK
-        if (users[ref].invites >= 3 && !users[ref].done) {
-          users[ref].done = true;
-
-          bot.sendMessage(ref,
-`🎉 UNLOCKED!
-
-👀 @user123
-👀 @user456
-👀 @user789`);
-        }
-      }
-    }
-
-    save();
-  }
-
-  // ===== UI MESSAGE =====
-  if (!(await isJoined(id))) {
-    return bot.sendPhoto(id,
-"https://i.ibb.co/0jQ5Z6V/gift.png",
-{
-  caption:
-`🎁 Welcome To ClaimKart Bot
-
-⚡ Vouchers Gifts Code  
-🔐 Secure Access System  
-🎮 Easy To Use  
-
-📢 Join Channel To Continue`,
-  reply_markup: {
-    inline_keyboard: [
-      [{ text: "📢 Join Channel", url: `https://t.me/${config.CHANNEL.replace("@","")}` }],
-      [{ text: "🚀 Join Updates", url: `https://t.me/${config.CHANNEL.replace("@","")}` }],
-      [{ text: "✅ Verify", callback_data: "verify" }]
-    ]
-  }
-});
-  }
-
-  users[id].verified = true;
-  save();
-
-  bot.sendMessage(id, "✅ Verified!\n\nSend username 👇");
 });
 
-// ================= VERIFY BUTTON =================
-bot.on("callback_query", async (q) => {
-  let id = String(q.message.chat.id);
+bot.action("toolkit", async (ctx) => {
 
-  if (q.data === "verify") {
-    if (await isJoined(id)) {
-      users[id].verified = true;
-      save();
+ctx.editMessageText(
+`🚀 Instagram Toolkit
 
-      bot.sendMessage(id, "✅ Verified Successfully!\n\nSend username 👇");
-    } else {
-      bot.answerCallbackQuery(q.id, {
-        text: "❌ Pehle channel join karo",
-        show_alert: true
-      });
-    }
-  }
+📥 Reel Downloader
+📸 Story Downloader
+🖼 DP Downloader
+📝 Caption Generator
+#️⃣ Hashtag Generator`
+);
+
 });
 
-// ================= MAIN =================
-bot.on("message", (msg) => {
-  let id = String(msg.chat.id);
-  let text = msg.text;
+bot.action("ai", async (ctx) => {
 
-  if (!text) return;
-  if (!users[id] || !users[id].verified) return;
-  if (text.startsWith("/")) return;
+ctx.editMessageText(
+`🤖 AI Tools
 
-  if (!text.startsWith("@")) {
-    return bot.sendMessage(id, "😏 Username bhejo like @yourname");
-  }
+✨ Viral Caption AI
+🔥 Reel Idea AI
+👤 Bio AI
+📅 Content Planner`
+);
 
-  let link = `https://t.me/${config.BOT_USERNAME}?start=${id}`;
-
-  bot.sendMessage(id,
-`🔥 1 Secret Admirer  
-👀 2 Hidden Stalkers  
-
-🔒 Invite 3 friends to unlock
-
-${users[id].invites}/3`,
-{
-  reply_markup: {
-    inline_keyboard: [
-      [
-        {
-          text: "📤 Share",
-          url: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=😳 Check this bot`
-        }
-      ]
-    ]
-  }
-});
 });
 
-// ================= EXPRESS =================
-const app = express();
+bot.action("profile", async (ctx) => {
 
-app.get("/", (req, res) => {
-  res.send("Bot Running 🚀");
+ctx.editMessageText(
+`👤 Profile
+
+ID: ${ctx.from.id}
+Name: ${ctx.from.first_name}`
+);
+
 });
 
-app.listen(process.env.PORT || 3000);
+bot.action("premium", async (ctx) => {
+
+ctx.editMessageText(
+`⭐ Premium Plans
+
+Unlimited AI
+Unlimited Downloads
+Premium Features`
+);
+
+});
+
+bot.launch();
