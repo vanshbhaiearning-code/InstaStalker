@@ -1,6 +1,5 @@
 module.exports = {
-  TOKEN: process.env.TOKEN,
+  TOKEN: "8934375616:AAEDAUzyLyC_yisZQ01tENluAWXjs7V_8Ok",
   CHANNEL: "@latestmodsapks",
-  BOT_USERNAME: "InstaStalkerXBot",
-  ADMIN: 6692986333
+  BOT_USERNAME: "InstaStalkerXBot"
 };
